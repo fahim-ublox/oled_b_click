@@ -4,8 +4,8 @@
 class SSD1306
 {
 public:
-	/** Construct a new LCD object
-	 *  @param cs The connected C/S pin.
+    /** Construct a new LCD object
+     *  @param cs The connected C/S pin.
      *  @param rs The connected RS pin.
      *  @param dc The connected DC pin.
      *  @param clk The connected CLK pin.
@@ -13,16 +13,16 @@ public:
      */
     SSD1306(PinName cs, PinName rs, PinName dc, PinName clk, PinName data);
 
-	/** Initialize LCD with default configurations */
+    /** Initialize LCD with default configurations */
     void initialise();    
 
-	/** Turn display off */
+    /** Turn display off */
     void off();
     
-	/** Turn display on */
+    /** Turn display on */
     void on();
 
-	/** Start horizontal scroll. 
+    /** Start horizontal scroll. 
       * @param direction 0 for right, 1 for left.
       * @param start Start page address, 0 - 4.
       * @param end End page address, 0 - 4.
@@ -30,54 +30,59 @@ public:
       */
     void start_horizontal_scroll(unsigned char direction, unsigned char start, unsigned char end, unsigned char interval);
 
-	/** Start horizontal and vertical scroll. 
-	  * @param direction 0 for vertical and right horizontal scroll, 1 for vertical and left horizontal scroll.
+    /** Start horizontal and vertical scroll. 
+      * @param direction 0 for vertical and right horizontal scroll, 1 for vertical and left horizontal scroll.
       * @param start Start page address, 0 - 4
       * @param end End page address, 0 - 4
       * @param interval Interval in frame frequency.  Valid values are: 2, 3, 4, 5, 25, 64, 128, 256.
       * @param vertical_offset Offset of vertical scroll, 1 - 39.
-	  */
+      */
     void start_vertical_and_horizontal_scroll(unsigned char direction, unsigned char start, unsigned char end, unsigned char interval, unsigned char vertical_offset);
     
-	/** stop scrolling */
+    /** stop scrolling */
     void stop_scroll();
     
-	/** set column address  
-	 *  @param address Start column address, 0 - 96
-	 */
+    /** set column address  
+     *  @param address Start column address, 0 - 96
+     */
     void pam_set_start_address(unsigned char address);       
     
-	/** set row address  
-	 *  @param address Start column address, 0 - 96
-	 */
+    /** set row address  
+     *  @param address Start column address, 0 - 96
+     */
     void pam_set_page_start(unsigned char address);    
         
-		    
-	/** Put one character on LCD */
+            
+    /** Put one character on LCD */
     void putc(unsigned char c);
     
-	/** Put formatted string on LCD */
+    /** Put formatted string on LCD */
     void printf(const char *format, ...);
-	
-	/** move cursor to desire position, x: 0-96, y: 0-4 */
-	void set_cursor(unsigned char x, unsigned char y);
-	
-	/** clear all display */
-	void clear();
-	
+    
+    /** move cursor to desire position, x: 0-96, y: 0-4 */
+    void set_cursor(unsigned char x, unsigned char y);
+    
+    /** clear all display */
+    void clear();
+    
+    /** Write an auto scrolling message on top row or bottom row of LCD */
+    void write_top(const char *message);
+    
+    
 private:
     SPI _spi;
     DigitalOut _cs, _reset, _dc;
 
     void oled_command(unsigned char code);
     void oled_data(unsigned char value);
+    void oled_multidata(unsigned char *string, unsigned char len); //optimised function for large transfer over SPI
 
 };
 
 /* LCD controller commands */
-#define SSD1306_96_39
 #define SSD1306_LCDWIDTH                  96
 #define SSD1306_LCDHEIGHT                 40
+#define FONT_WIDTH                        6
 
 #define SSD1306_DISPLAYOFF 0xAE
 #define SSD1306_SETDISPLAYCLOCKDIV 0xD5
@@ -86,7 +91,7 @@ private:
 #define SSD1306_SETSTARTLINE 0x40
 #define SSD1306_CHARGEPUMP 0x8D
 
-#define SSD1306_SETSEGMENTREMAP 0xA1  // ja
+#define SSD1306_SETSEGMENTREMAP 0xA1  
 #define SSD1306_SEGREMAP 0xA0
 
 #define SSD1306_COMSCANDEC 0xC8

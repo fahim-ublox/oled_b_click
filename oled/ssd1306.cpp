@@ -1,8 +1,6 @@
-
 #include "mbed.h"
 #include "ssd1306.h"
 #include "standard_font.h"
-
 #include <stdarg.h>
 
 
@@ -54,7 +52,7 @@ void SSD1306::start_horizontal_scroll(unsigned char direction, unsigned char sta
 
 void SSD1306::start_vertical_and_horizontal_scroll(unsigned char direction, unsigned char start, unsigned char end, unsigned char interval, unsigned char vertical_offset)
 {
-	oled_command(SSD1306_SET_VERTICAL_SCROLL_AREA);              //0xA3 Set Vertical Scroll Area
+    oled_command(SSD1306_SET_VERTICAL_SCROLL_AREA);              //0xA3 Set Vertical Scroll Area
     oled_command(0X00);                                          //Set No. of rows in top fixed area
     oled_command(SSD1306_LCDHEIGHT);
     oled_command(direction ? 0x2A : 0x29);
@@ -88,13 +86,13 @@ void SSD1306::stop_scroll()
 
 void SSD1306::pam_set_start_address(unsigned char address)
 {
-	oled_command((0x10|(address>>4)));
+    oled_command((0x10|(address>>4)));
     oled_command((0x0f&address));
 }
 
 void SSD1306::pam_set_page_start(unsigned char address)
 {
-	address=0xb0|address;
+    address=0xb0|address;
     oled_command(address);
 }
 
@@ -138,11 +136,73 @@ void SSD1306::initialise()
     
 }
 
+void SSD1306::write_top(const char *message)
+{
+    uint8_t t = 0, buffer_index = 0, j = 0, z=0;
+    uint16_t i = 0, k = 0, len = 0;
+    unsigned char lcd_buffer[SSD1306_LCDWIDTH] = {0x00};
+    unsigned char display_string[512] = {0x00};
+    
+    len=strnlen( (const char*)message, 500);    
+    MBED_ASSERT(len < 486);
+    
+    strcpy((char*)display_string, "            "); //write few spaces so text starts scrolling from extreme right
+    strncat((char*)display_string, (const char*)message, len);
+    strcat((char*)display_string, "            ");
+    len=strlen( (const char*)display_string);
+
+    for (i = 0; i < len; i++) 
+    { //loop until all characters in string are shifted
+                
+        for (int z =0; z < FONT_WIDTH; z++) 
+        { //move 1 byte of same character until new character is reached
+         
+            k = i;  
+            buffer_index=0;             
+            set_cursor(0,0); //top row
+            
+            for (j = 0; j < (SSD1306_LCDWIDTH/FONT_WIDTH); j++) 
+            { //print a line to buffer
+                                
+                if (j ==0) 
+                { //create offset only at start of each iteration
+                    t=z;
+                } 
+                else 
+                {
+                    t=0;
+                }
+                if (display_string[(k+j)]) //is there a valid char to display
+                {
+                    for (int b=0; b<(FONT_WIDTH-t); b++)
+                    {
+                        //write shifted string to a buffer and then write complete buffer to LCD (faster instead of acquiring SPI for each character)
+                        lcd_buffer[buffer_index]=ssd1306_font[((display_string[(k+j)] - 0x20) * FONT_WIDTH) +b +t ]; //offset 1 byte of the character
+                        buffer_index++;
+                    }
+                } 
+                else //write spaces otherwise
+                {
+                    for (int b=0; b<(FONT_WIDTH); b++)
+                    {
+                        lcd_buffer[buffer_index]=0x00;
+                        buffer_index++;
+                    }
+                    k--;
+                }
+
+            }
+            //write the generated line to lcd
+            oled_multidata(lcd_buffer, SSD1306_LCDWIDTH-3); //leave few pixels at end otherwise scrolling text gives a sticky look
+            wait_ms(15);
+        }
+    } 
+}
 
 
 void SSD1306::putc(unsigned char c)
 {
-	uint8_t i = 0;
+    uint8_t i = 0;
 
     for(i=0; i<6; i++)
     {
@@ -171,19 +231,19 @@ void SSD1306::clear()
 {
     uint8_t i,j;
     
-	for(i=0; i<5; i++)       //clear page 0~8
-	{
+    for(i=0; i<5; i++)       //clear page 0~8
+    {
         pam_set_page_start(i);  //set page
         pam_set_start_address(0x00);
-		for(j=0; j<128; j++)     //clear all columns upto 130    
-		oled_data(0x00);   
+        for(j=0; j<128; j++)     //clear all columns upto 130    
+        oled_data(0x00);   
     }
 }
 
 void SSD1306::set_cursor(unsigned char x, unsigned char y)
 {
-	pam_set_start_address(x);
-	pam_set_page_start(y);
+    pam_set_start_address(x);
+    pam_set_page_start(y);
 }
 
 void SSD1306::oled_command(unsigned char code)
@@ -203,4 +263,18 @@ void SSD1306::oled_data(unsigned char value)
     _spi.write(value);
     _cs = 1;
 }
+void SSD1306::oled_multidata(unsigned char *string, unsigned char len)
+{
+    _cs = 1;
+    _dc = 1;
+    _cs = 0;
+    while(len)
+    {
+        _spi.write(*string);
+        string++;
+        len--;
+    }
+    _cs = 1;
+}
+
 
