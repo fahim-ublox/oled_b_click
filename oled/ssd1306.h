@@ -68,6 +68,8 @@ public:
     /** Write an auto scrolling message on top row or bottom row of LCD */
     void write_top(const char *message);
     
+     /** Write an auto scrolling message on top row or bottom row of LCD */
+    void write_bottom(const char *message);
     
 private:
     SPI _spi;

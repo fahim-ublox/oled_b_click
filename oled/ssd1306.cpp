@@ -141,20 +141,20 @@ void SSD1306::write_top(const char *message)
     uint8_t t = 0, buffer_index = 0, j = 0, z=0;
     uint16_t i = 0, k = 0, len = 0;
     unsigned char lcd_buffer[SSD1306_LCDWIDTH] = {0x00};
-    unsigned char display_string[512] = {0x00};
+    unsigned char display_string[280] = {0x00};
     
-    len=strnlen( (const char*)message, 500);    
-    MBED_ASSERT(len < 486);
+    len=strnlen( (const char*)message, 280);    
+    MBED_ASSERT(len < 255);
     
     strcpy((char*)display_string, "            "); //write few spaces so text starts scrolling from extreme right
     strncat((char*)display_string, (const char*)message, len);
     strcat((char*)display_string, "            ");
-    len=strlen( (const char*)display_string);
+    len=len+24;
 
     for (i = 0; i < len; i++) 
     { //loop until all characters in string are shifted
                 
-        for (int z =0; z < FONT_WIDTH; z++) 
+        for (z =0; z < FONT_WIDTH; z++) 
         { //move 1 byte of same character until new character is reached
          
             k = i;  
@@ -193,12 +193,74 @@ void SSD1306::write_top(const char *message)
 
             }
             //write the generated line to lcd
-            oled_multidata(lcd_buffer, SSD1306_LCDWIDTH-3); //leave few pixels at end otherwise scrolling text gives a sticky look
-            wait_ms(15);
+            oled_multidata(lcd_buffer, SSD1306_LCDWIDTH-4); //leave few pixels at end otherwise scrolling text gives a sticky look
+            Thread::wait(20);
         }
     } 
 }
 
+void SSD1306::write_bottom(const char *message)
+{
+    uint8_t t = 0, buffer_index = 0, j = 0, z=0;
+    uint16_t i = 0, k = 0, len = 0;
+    unsigned char lcd_buffer[SSD1306_LCDWIDTH] = {0x00};
+    unsigned char display_string[280] = {0x00};
+    
+    len=strnlen( (const char*)message, 280);    
+    MBED_ASSERT(len < 255);
+    
+    strcpy((char*)display_string, "            "); //write few spaces so text starts scrolling from extreme right
+    strncat((char*)display_string, (const char*)message, len);
+    strcat((char*)display_string, "            ");
+    len=len+24;
+
+    for (i = 0; i < len; i++) 
+    { //loop until all characters in string are shifted
+                
+        for (z =0; z < FONT_WIDTH; z++) 
+        { //move 1 byte of same character until new character is reached
+         
+            k = i;  
+            buffer_index=0;             
+            set_cursor(0,4); //bottom row
+            
+            for (j = 0; j < (SSD1306_LCDWIDTH/FONT_WIDTH); j++) 
+            { //print a line to buffer
+                                
+                if (j ==0) 
+                { //create offset only at start of each iteration
+                    t=z;
+                } 
+                else 
+                {
+                    t=0;
+                }
+                if (display_string[(k+j)]) //is there a valid char to display
+                {
+                    for (int b=0; b<(FONT_WIDTH-t); b++)
+                    {
+                        //write shifted string to a buffer and then write complete buffer to LCD (faster instead of acquiring SPI for each character)
+                        lcd_buffer[buffer_index]=ssd1306_font[((display_string[(k+j)] - 0x20) * FONT_WIDTH) +b +t ]; //offset 1 byte of the character
+                        buffer_index++;
+                    }
+                } 
+                else //write spaces otherwise
+                {
+                    for (int b=0; b<(FONT_WIDTH); b++)
+                    {
+                        lcd_buffer[buffer_index]=0x00;
+                        buffer_index++;
+                    }
+                    k--;
+                }
+
+            }
+            //write the generated line to lcd
+            oled_multidata(lcd_buffer, SSD1306_LCDWIDTH-4); //leave few pixels at end otherwise scrolling text gives a sticky look
+            Thread::wait(20);
+        }
+    } 
+}
 
 void SSD1306::putc(unsigned char c)
 {
