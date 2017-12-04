@@ -71,10 +71,22 @@ public:
      /** Write an auto scrolling message on top row or bottom row of LCD */
     void write_bottom(const char *message);
     
+    void scroll_top();
+    
+    void scroll_bottom();
+    
+    void queue_put_top(unsigned char * message);
+    
+    void queue_put_bottom(unsigned char * message);
 private:
     SPI _spi;
     DigitalOut _cs, _reset, _dc;
-
+    Thread scroll_top_thread;
+    Thread scroll_bot_thread;
+    unsigned char message_top[256];
+    unsigned char message_bottom[256];
+    Queue<unsigned char, 256> queue_msg_top;
+    Queue<unsigned char, 256> queue_msg_bottom;
     void oled_command(unsigned char code);
     void oled_data(unsigned char value);
     void oled_multidata(unsigned char *string, unsigned char len); //optimised function for large transfer over SPI

@@ -2,6 +2,7 @@
 #include "ssd1306.h"
 #include "standard_font.h"
 #include <stdarg.h>
+#include "rtos.h"
 
 
 
@@ -11,6 +12,10 @@ SSD1306::SSD1306(PinName cs, PinName rs, PinName dc, PinName clk, PinName data)
       _reset(rs), 
       _dc(dc)
 {
+    initialise();
+    clear();
+    scroll_top_thread.start(callback(this, &SSD1306::scroll_top));
+    scroll_bot_thread.start(callback(this, &SSD1306::scroll_bottom));
 }
 
 void SSD1306::off()
@@ -133,7 +138,45 @@ void SSD1306::initialise()
     oled_command(SSD1306_NORMALDISPLAY);          //0xA6   Set Normal/Inverse Display
     oled_command(SSD1306_DISPLAYON);              //0xAF   Set OLED Display On
     
-    
+
+} 
+
+void SSD1306::queue_put_top(unsigned char * message)
+{
+    unsigned char temp[256]={0x00};
+    strncpy((char*)temp, (const char*)message, 254);
+    queue_msg_top.put(temp);    
+}
+
+void SSD1306::queue_put_bottom(unsigned char * message)
+{
+    unsigned char temp[256]={0x00};
+    strncpy((char*)temp, (const char*)message, 254);
+    queue_msg_bottom.put(temp);    
+}
+
+void SSD1306::scroll_top() {    
+    while (true) {
+        osEvent evt = queue_msg_top.get(0);
+        if (evt.status == osEventMessage) {
+            unsigned char *temp_msg = (unsigned char*)evt.value.p;
+            strcpy((char*)message_top, (const char*)temp_msg);
+        }
+        if (message_top[0])
+    	write_top((const char*)message_top);
+    }
+}
+
+void SSD1306::scroll_bottom() {
+    while (true) {
+        osEvent evt = queue_msg_bottom.get(0);
+        if (evt.status == osEventMessage) {            
+            unsigned char *temp_msg = (unsigned char*)evt.value.p;
+            strcpy((char*)message_bottom, (const char*)temp_msg);            
+        }  
+        if (message_bottom[0])        
+    	write_bottom((const char*)message_bottom);
+    }
 }
 
 void SSD1306::write_top(const char *message)
