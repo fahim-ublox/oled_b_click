@@ -381,5 +381,3 @@ void SSD1306::oled_multidata(unsigned char *string, unsigned char len)
     }
     _cs = 1;
 }
-
-
